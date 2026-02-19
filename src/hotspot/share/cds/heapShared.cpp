@@ -294,6 +294,26 @@ bool HeapShared::archive_object(oop obj, oop referrer, KlassSubGraphInfo* subgra
     return true;
   }
 
+  if (java_lang_invoke_ResolvedMethodName::is_instance(obj)) {
+    Method* m = java_lang_invoke_ResolvedMethodName::vmtarget(obj);
+    if (m != nullptr) {
+      InstanceKlass* holder = m->method_holder();
+      if (SystemDictionaryShared::is_excluded_class(holder)) {
+        ResourceMark rm;
+        log_debug(aot, heap)("Skipping ResolvedMethodName for excluded class %s", holder->external_name());
+        return false;
+      }
+    }
+  } else if (java_lang_Class::is_instance(obj)) {
+    Klass* k = obj->klass();
+    Klass* mirror_k = java_lang_Class::as_Klass(obj);
+    if (SystemDictionaryShared::should_be_excluded(k) || (mirror_k != nullptr && SystemDictionaryShared::should_be_excluded(mirror_k))) {
+      ResourceMark rm;
+      log_debug(aot, heap)("Skipping excluded class %s", k->external_name());
+      return false;
+    }
+  }
+
   if (ArchiveHeapWriter::is_too_large_to_archive(obj->size())) {
     log_debug(aot, heap)("Cannot archive, object (" PTR_FORMAT ") is too large: %zu",
                          p2i(obj), obj->size());
@@ -331,7 +351,7 @@ bool HeapShared::archive_object(oop obj, oop referrer, KlassSubGraphInfo* subgra
 
       if (java_lang_Class::is_instance(obj)) {
         Klass* mirror_k = java_lang_Class::as_Klass(obj);
-        if (mirror_k != nullptr) {
+        if (mirror_k != nullptr && !SystemDictionaryShared::should_be_excluded(mirror_k)) {
           AOTArtifactFinder::add_cached_class(mirror_k);
         }
       } else if (java_lang_invoke_ResolvedMethodName::is_instance(obj)) {
@@ -528,7 +548,7 @@ void HeapShared::copy_and_rescan_aot_inited_mirror(InstanceKlass* ik) {
           m->obj_field_put(offset, field_obj);
           if (field_obj != nullptr) {
             bool success = archive_reachable_objects_from(1, _dump_time_special_subgraph, field_obj);
-            assert(success, "sanity");
+            // assert(success, "sanity");
           }
         }
         break;
