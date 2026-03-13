@@ -239,12 +239,12 @@ void SystemDictionaryShared::iterate_verification_constraint_names(InstanceKlass
 
 // This is a table of classes that need to be checked for exclusion.
 class SystemDictionaryShared::ExclusionCheckCandidates
-  : public HashTable<InstanceKlass*, DumpTimeClassInfo*, 15889> {
+  : public ResourceHashtable<InstanceKlass*, DumpTimeClassInfo*, 15889> {
   void add_candidate(InstanceKlass* k) {
     if (contains(k)) {
       return;
     }
-    if (CDSConfig::is_dumping_dynamic_archive() && AOTMetaspace::in_aot_cache(k)) {
+    if (CDSConfig::is_dumping_dynamic_archive() && MetaspaceShared::is_in_shared_metaspace(k)) {
       return;
     }
 
@@ -272,7 +272,7 @@ class SystemDictionaryShared::ExclusionCheckCandidates
       add_candidate(interfaces->at(i));
     }
 
-    InstanceKlass* nest_host = k->nest_host_or_null();
+    InstanceKlass* nest_host = k->nest_host_not_null();
     if (nest_host != nullptr && nest_host != k) {
       add_candidate(nest_host);
     }
@@ -477,7 +477,7 @@ bool SystemDictionaryShared::check_dependencies_exclusion(InstanceKlass* k, Dump
     }
   }
 
-  InstanceKlass* nest_host = k->nest_host_or_null();
+  InstanceKlass* nest_host = k->nest_host_not_null();
   if (nest_host != nullptr && nest_host != k && is_dependency_excluded(k, nest_host, "nest host class")) {
     return true;
   }
@@ -506,7 +506,7 @@ bool SystemDictionaryShared::check_dependencies_exclusion(InstanceKlass* k, Dump
 }
 
 bool SystemDictionaryShared::is_dependency_excluded(InstanceKlass* k, InstanceKlass* dependency, const char* type) {
-  if (CDSConfig::is_dumping_dynamic_archive() && AOTMetaspace::in_aot_cache(dependency)) {
+  if (CDSConfig::is_dumping_dynamic_archive() && MetaspaceShared::is_in_shared_metaspace(dependency)) {
     return false;
   }
   DumpTimeClassInfo* dependency_info = get_info_locked(dependency);
@@ -854,7 +854,7 @@ bool SystemDictionaryShared::should_be_excluded(Klass* k) {
   assert(CDSConfig::is_dumping_archive(), "sanity");
   assert(CDSConfig::current_thread_is_vm_or_dumper(), "sanity");
 
-  if (CDSConfig::is_dumping_dynamic_archive() && AOTMetaspace::in_aot_cache(k)) {
+  if (CDSConfig::is_dumping_dynamic_archive() && MetaspaceShared::is_in_shared_metaspace(k)) {
     // We have reached a super type that's already in the base archive. Treat it
     // as "not excluded".
     return false;
