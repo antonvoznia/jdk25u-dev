@@ -272,7 +272,7 @@ class SystemDictionaryShared::ExclusionCheckCandidates
       add_candidate(interfaces->at(i));
     }
 
-    InstanceKlass* nest_host = k->nest_host_not_null();
+    InstanceKlass* nest_host = k->nest_host_or_null();
     if (nest_host != nullptr && nest_host != k) {
       add_candidate(nest_host);
     }
@@ -477,7 +477,7 @@ bool SystemDictionaryShared::check_dependencies_exclusion(InstanceKlass* k, Dump
     }
   }
 
-  InstanceKlass* nest_host = k->nest_host_not_null();
+  InstanceKlass* nest_host = k->nest_host_or_null();
   if (nest_host != nullptr && nest_host != k && is_dependency_excluded(k, nest_host, "nest host class")) {
     return true;
   }
