@@ -561,7 +561,7 @@ bool ConstantPoolCache::can_archive_resolved_method(ConstantPool* src_cp, Resolv
     }
     if (method_entry->is_resolved(Bytecodes::_invokehandle)) {
       if (!CDSConfig::is_dumping_method_handles()) {
-        rejection_reason = "(not dumping method handles)";
+        // invokehandle depends on archived MethodType and LambdaForms.
         return false;
       }
 
@@ -579,7 +579,6 @@ bool ConstantPoolCache::can_archive_resolved_method(ConstantPool* src_cp, Resolv
       }
     }
     if (method_entry->method()->is_method_handle_intrinsic() && !CDSConfig::is_dumping_method_handles()) {
-      rejection_reason = "(not dumping intrinsic method handles)";
       return false;
     }
   }
