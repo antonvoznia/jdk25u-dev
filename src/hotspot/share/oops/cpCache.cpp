@@ -560,6 +560,9 @@ bool ConstantPoolCache::can_archive_resolved_method(ConstantPool* src_cp, Resolv
       return false; // FIXME: corresponding stub is generated on demand during method resolution (see LinkResolver::resolve_static_call).
     }
     if (method_entry->is_resolved(Bytecodes::_invokehandle)) {
+      if (!CDSConfig::is_dumping_method_handles()) {
+        return false;
+      }
 
       Symbol* sig = constant_pool()->uncached_signature_ref_at(cp_index);
       Klass* k;
@@ -573,6 +576,7 @@ bool ConstantPoolCache::can_archive_resolved_method(ConstantPool* src_cp, Resolv
         ResourceMark rm;
         fatal("AOT assembly phase must not resolve any invokehandles whose signatures include an excluded type");
       }
+      return true;
     }
   }
 
@@ -586,13 +590,6 @@ bool ConstantPoolCache::can_archive_resolved_method(ConstantPool* src_cp, Resolv
       method_entry->is_resolved(Bytecodes::_invokevirtual) ||
       method_entry->is_resolved(Bytecodes::_invokespecial)) {
     return true;
-  } else if (method_entry->is_resolved(Bytecodes::_invokehandle)) {
-    if (CDSConfig::is_dumping_method_handles()) {
-      // invokehandle depends on archived MethodType and LambdaForms.
-      return true;
-    } else {
-      return false;
-    }
   } else {
     return false;
   }
