@@ -714,7 +714,7 @@ void PhaseIdealLoop::do_split_if(Node* iff, RegionNode** new_false_region, Regio
     --k;
   } // End of while merge point has phis
 
-  _igvn.remove_dead_node(region);
+  _igvn.remove_dead_node(region, PhaseIterGVN::NodeOrigin::Graph);
   if (iff->Opcode() == Op_RangeCheck) {
     // Pin array access nodes: control is updated here to a region. If, after some transformations, only one path
     // into the region is left, an array load could become dependent on a condition that's not a range check for
